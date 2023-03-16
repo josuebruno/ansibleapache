@@ -1,0 +1,49 @@
+- name: Instalar e configurar Apache em alta disponibilidade
+  hosts: webservers
+  become: true
+
+  tasks:
+  - name: Instalar Apache
+    apt:
+      name: apache2
+      state: latest
+
+  - name: Configurar arquivos virtuais do Apache
+    template:
+      src: templates/apache-vhost.conf.j2
+      dest: /etc/apache2/sites-available/{{ inventory_hostname }}.conf
+    notify: Reload Apache
+
+  - name: Habilitar arquivo virtual do Apache
+    file:
+      src: /etc/apache2/sites-available/{{ inventory_hostname }}.conf
+      dest: /etc/apache2/sites-enabled/{{ inventory_hostname }}.conf
+      state: link
+
+  - name: Configurar módulos do Apache
+    apache2_module:
+      name: "{{ item }}"
+      state: present
+    with_items:
+      - proxy
+      - proxy_http
+      - proxy_balancer
+      - lbmethod_byrequests
+
+  - name: Configurar balanceamento de carga do Apache
+    template:
+      src: templates/proxy-balancer.conf.j2
+      dest: /etc/apache2/conf-available/proxy-balancer.conf
+    notify: Reload Apache
+
+  - name: Habilitar módulo de balanceamento de carga do Apache
+    apache2_module:
+      name: proxy_balancer
+      state: present
+    notify: Reload Apache
+
+  handlers:
+    - name: Reload Apache
+      service:
+        name: apache2
+        state: reloaded
