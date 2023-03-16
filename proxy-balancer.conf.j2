@@ -1,0 +1,8 @@
+<Proxy "balancer://backend-cluster">
+    BalancerMember "http://backend1.example.com:8080"
+    BalancerMember "http://backend2.example.com:8080"
+    ProxySet lbmethod=byrequests
+</Proxy>
+
+ProxyPass "/api" "balancer://backend-cluster/api"
+ProxyPassReverse "/api" "balancer://backend-cluster/api"
